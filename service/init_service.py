@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 
 from core.config import Config
-from models import Base, SysUser, SysRole, Folder
+from models import Base, SysUser, SysRole, Folder, Content
 
 
 class DatabaseService:
@@ -26,8 +26,8 @@ class DatabaseService:
     @classmethod
     def init_db(cls):
         engine = cls.get_engine()
-        # if not database_exists(engine.url):
-        #     create_database(engine.url)
+        if not database_exists(engine.url):
+            create_database(engine.url)
         SQLModel.metadata.create_all(engine)
 
         cls.insert_admin()

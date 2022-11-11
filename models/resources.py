@@ -1,64 +1,37 @@
 from datetime import datetime
-from sqlalchemy import Integer, Column, String, DateTime, ForeignKey, LargeBinary
-from sqlalchemy.orm import relationship
 
-from . import Base
-
-
-class Resource(Base):
-    __tablename__ = 'resource'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(255), comment="title name")
-    url = Column(String(255), unique=True, comment="unique url")
-
-    created_time = Column(DateTime,
-                          default=datetime.now,
-                          comment="create time")
-
-    modified_time = Column(DateTime,
-                           default=datetime.now,
-                           onupdate=datetime.now,
-                           comment="update time")
-
-    parent_id = Column(Integer, ForeignKey('resource.id'), nullable=True)
-    sub_resource = relationship("Resource", foreign_keys=parent_id)
-
-    type = Column(String(50))
-    __mapper_args__ = {
-        # 'polymorphic_identity': 'resource',
-        'polymorphic_on': type
-    }
+from typing import Optional, List
+from sqlmodel import Field, SQLModel, Relationship
 
 
-class Content(Resource):
-    __tablename__ = 'content'
-    id = Column(Integer,
-                ForeignKey('resource.id', ondelete='CASCADE'),
-                primary_key=True)
+class Folder(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: Optional[str]
+    url: Optional[str]
 
-    sub_title = Column(String(255), nullable=True, comment="content summary")
-    status = Column(String(255), nullable=True, comment="content status")
-    content = Column(LargeBinary, nullable=True, comment="content html")
+    # created_time = Column(DateTime,
+    #                       default=datetime.now,
+    #                       comment="create time")
+    #
+    # modified_time = Column(DateTime,
+    #                        default=datetime.now,
+    #                        onupdate=datetime.now,
+    #                        comment="update time")
 
-    # parent_id = Column(Integer, ForeignKey('resource.id'))
-    # sub_resource = relationship("Resource", foreign_keys=parent_id)
+    content_id: Optional[int] = Field(default=None, foreign_key="content.id")
+    content: Optional["Content"] = Relationship(back_populates="folder")
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'content',
-        'inherit_condition': id == Resource.id,
-    }
+    parent_id: Optional[int] = Field(default=None, foreign_key="folder.id")
+    parent: Optional["Resource"] = Relationship(back_populates="sub_folders")
+
+    sub_folders: List["Resource"] = Relationship(back_populates="parent")
 
 
-class Folder(Resource):
-    __tablename__ = 'folder'
-    id = Column(Integer,
-                ForeignKey('resource.id', ondelete='CASCADE'),
-                primary_key=True)
+class Content(SQLModel, table=True):
+    id: Optional[int] = Field(default=None,
+                              primary_key=True)
+    folder: Optional["Content"] = Relationship(back_populates="content")
 
-    # parent_id = Column(Integer, ForeignKey('resource.id'))
-    # sub_resource = relationship("Resource", foreign_keys=parent_id)
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'folder',
-        'inherit_condition': id == Resource.id,
-    }
+    sub_title: Optional[str]
+    status: Optional[str]
+    content: Optional[str]
