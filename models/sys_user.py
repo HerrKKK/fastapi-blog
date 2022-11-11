@@ -1,41 +1,35 @@
-from sqlalchemy import Integer, Column, String
-from sqlalchemy.orm import relationship
-
-from . import Base
-
-
-class SysUser(Base):
-    __tablename__ = 'sys_user'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(20), unique=True, comment="username")
-    email = Column(String(128), unique=True, comment="email")
-    password_hash = Column(String(128), comment="password hash")
-    salt = Column(String(128), comment="salt")
-    roles = relationship('SysRole',
-                         secondary='user_role',
-                         back_populates='users',
-                         lazy="joined")
+from typing import Optional, List
+from sqlmodel import Field, SQLModel, Relationship
+from .relations import UserRole, RolePermission
 
 
-class SysRole(Base):
-    __tablename__ = 'sys_role'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(20), unique=True, comment="role name")
-    description = Column(String(255), comment="role description")
-    users = relationship('SysUser',
-                         secondary='user_role',
-                         back_populates='roles')
-    permissions = relationship('SysPermission',
-                               secondary='role_permission',
-                               back_populates='roles',
-                               lazy="joined")
+class SysUser(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: Optional[str]
+    email: Optional[str]
+    password_hash: Optional[str]
+    salt: Optional[str]
+
+    roles: List["SysRole"] = Relationship(back_populates="users",
+                                          link_model=UserRole)
 
 
-class SysPermission(Base):
-    __tablename__ = 'sys_permission'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(20), unique=True, comment="permission name")
-    description = Column(String(255), comment="permission description")
-    roles = relationship('SysRole',
-                         secondary='role_permission',
-                         back_populates='permissions')
+class SysRole(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: Optional[str]
+    description: Optional[str]
+
+    users: List["SysUser"] = Relationship(back_populates="roles",
+                                          link_model=UserRole)
+    permissions: List["SysPermission"]\
+        = Relationship(back_populates="roles",
+                       link_model=RolePermission)
+
+
+class SysPermission(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: Optional[str]
+    description: Optional[str]
+
+    roles: List["SysRole"] = Relationship(back_populates="permissions",
+                                          link_model=RolePermission)

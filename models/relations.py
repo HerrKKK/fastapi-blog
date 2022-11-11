@@ -1,29 +1,20 @@
-from sqlalchemy import Integer, Column, ForeignKey
-
-from . import Base
-
-
-class UserRole(Base):
-    __tablename__ = 'user_role'
-    user_id = Column(
-        Integer,
-        ForeignKey('sys_user.id'),
-        primary_key=True)
-    role_id = Column(
-        Integer,
-        ForeignKey('sys_role.id'),
-        primary_key=True)
+from typing import Optional
+from sqlmodel import Field, SQLModel
 
 
-class RolePermission(Base):
-    __tablename__ = 'role_permission'
-    role_id = Column(
-        Integer,
-        ForeignKey('sys_role.id'),
-        nullable=False,
-        primary_key=True)
-    permission_id = Column(
-        Integer,
-        ForeignKey('sys_permission.id'),
-        nullable=False,
-        primary_key=True)
+class UserRole(SQLModel, table=True):
+    user_id: Optional[int] = Field(
+        default=None, foreign_key="sysuser.id", primary_key=True
+    )
+    role_id: Optional[int] = Field(
+        default=None, foreign_key="sysrole.id", primary_key=True
+    )
+
+
+class RolePermission(SQLModel, table=True):
+    role_id: Optional[int] = Field(
+        default=None, foreign_key="sysrole.id", primary_key=True
+    )
+    permission_id: Optional[int] = Field(
+        default=None, foreign_key="syspermission.id", primary_key=True
+    )

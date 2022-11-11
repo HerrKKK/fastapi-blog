@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlmodel import SQLModel, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 
@@ -26,9 +26,9 @@ class DatabaseService:
     @classmethod
     def init_db(cls):
         engine = cls.get_engine()
-        if not database_exists(engine.url):
-            create_database(engine.url)
-        Base.metadata.create_all(engine)
+        # if not database_exists(engine.url):
+        #     create_database(engine.url)
+        SQLModel.metadata.create_all(engine)
 
         cls.insert_admin()
         cls.insert_root_folder()
