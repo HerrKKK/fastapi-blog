@@ -56,8 +56,9 @@ async def get_sub_count(
     ResourceService.check_permission(folders[0], cur_user, 1)
 
     count = await redis.get(
-        ':count:{}:tag_name:{}:page_idx:{}:page_size{}'
+        'count:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
         .format(
+            url,
             resource_query.category_name,
             resource_query.tag_name,
             resource_query.page_idx,
@@ -73,8 +74,9 @@ async def get_sub_count(
         )
         await redis.delete('count_need_refresh')
         await redis.set(
-            ':count:{}:tag_name:{}:page_idx:{}:page_size{}'
+            'count:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
             .format(
+                url,
                 resource_query.category_name,
                 resource_query.tag_name,
                 resource_query.page_idx,
@@ -108,8 +110,9 @@ async def get_folder(
     ResourceService.check_permission(folders[0], cur_user, 1)
 
     preview_str = await redis.get(
-        'preview:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
+        'preview:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
         .format(
+            url,
             resource_query.category_name,
             resource_query.tag_name,
             resource_query.page_idx,
@@ -125,8 +128,9 @@ async def get_folder(
         )
         await redis.delete('preview_need_refresh')
         await redis.set(
-            'preview:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
+            'preview:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
             .format(
+                url,
                 resource_query.category_name,
                 resource_query.tag_name,
                 resource_query.page_idx,
