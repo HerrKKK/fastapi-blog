@@ -1,7 +1,7 @@
 # import redis.asyncio as redis
 from redis.asyncio import Redis, ConnectionPool
 
-from config import Config
+from config import Config, logger
 
 
 class AsyncRedis:
@@ -11,7 +11,6 @@ class AsyncRedis:
     async def init_redis(cls):
         cls.__pool = ConnectionPool(
             **Config.redis.__dict__,
-            decode_responses=True
         )
 
     @classmethod
@@ -23,7 +22,7 @@ class AsyncRedis:
         try:
             conn = await cls.get_connection()
             await conn.set('test', '111')
-            print('after set')
-            print(await conn.get('test'))
+            logger.info('after set')
+            logger.info(await conn.get('test'))
         except Exception as e:
-            print(e)
+            logger.info(e)
