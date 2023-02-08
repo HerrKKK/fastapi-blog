@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
+from redis import Redis
 
-from dao import AsyncDatabase
+from dao import AsyncDatabase, AsyncRedis
 from models import Content, Folder, Resource
 from schemas import (
     FolderInput,
@@ -57,10 +58,12 @@ async def get_sub_count(
 async def get_folder(
     url: str = '',
     resource_query: ResourceQuery = Depends(),
-    cur_user: UserOutput = Depends(SecurityService.optional_login_required)
+    cur_user: UserOutput = Depends(SecurityService.optional_login_required),
+    redis: Redis = Depends(AsyncRedis.get_connection)
 ):
     if len(url) > 0 and url[0] != '/':
         url = f'/{url}'
+
     folders = await ResourceService.find_resources(Folder(url=url))
     assert len(folders) == 1
     ResourceService.check_permission(folders[0], cur_user, 1)
