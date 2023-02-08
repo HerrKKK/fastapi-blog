@@ -65,7 +65,7 @@ async def get_sub_count(
         )
     )
     need_refresh = await redis.get('count_need_refresh')
-    if count is None or need_refresh == 'True':
+    if count is None or need_refresh is not None:
         count = await ResourceService.find_sub_count(
             folders[0].url,
             resource_query,
