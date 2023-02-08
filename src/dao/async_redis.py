@@ -11,7 +11,6 @@ class AsyncRedis:
     async def init_redis(cls):
         cls.__pool = ConnectionPool(
             **Config.redis.__dict__,
-            decode_responses=True
         )
 
     @classmethod
