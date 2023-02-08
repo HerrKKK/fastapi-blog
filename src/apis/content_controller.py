@@ -70,6 +70,8 @@ async def modify_content(
     await ResourceService.reset_content_tags(Content(**content.dict()))
     content = await ResourceService.modify_resource(Content(**content.dict()))
     await redis.set(f'content:id:{content.id}', pickle.dumps(content))
+    await redis.set('count_need_refresh', 'True')
+    await redis.set('preview_need_refresh', 'True')
     return ContentOutput.init(content)
 
 
