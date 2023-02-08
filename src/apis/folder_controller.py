@@ -1,3 +1,5 @@
+import pickle
+
 from fastapi import APIRouter, Depends
 from redis import Redis
 
@@ -38,18 +40,49 @@ async def add_folder(
 async def get_sub_count(
     url: str = None,
     resource_query: ResourceQuery = Depends(),
-    cur_user: UserOutput = Depends(SecurityService.optional_login_required)
+    cur_user: UserOutput = Depends(SecurityService.optional_login_required),
+    redis: Redis = Depends(AsyncRedis.get_connection)
 ):
     if len(url) > 0 and url[0] != '/':
         url = f'/{url}'
-    folders = await ResourceService.find_resources(Folder(url=url))
+
+    folder_str = await redis.get(f'folder:url:{url}')
+    if folder_str is not None:
+        folders = [pickle.loads(folder_str)]
+    else:
+        folders = await ResourceService.find_resources(Folder(url=url))
+        await redis.set(f'folder:url:{url}', pickle.dumps(folders[0]))
     assert len(folders) == 1
     ResourceService.check_permission(folders[0], cur_user, 1)
-    return await ResourceService.find_sub_count(
-        folders[0].url,
-        resource_query,
-        Content
+
+    count = await redis.get(
+        ':count:{}:tag_name:{}:page_idx:{}:page_size{}'
+        .format(
+            resource_query.category_name,
+            resource_query.tag_name,
+            resource_query.page_idx,
+            resource_query.page_size
+        )
     )
+    need_refresh = await redis.get('count_need_refresh')
+    if count is None or need_refresh == 'True':
+        count = await ResourceService.find_sub_count(
+            folders[0].url,
+            resource_query,
+            Content
+        )
+        await redis.delete('count_need_refresh')
+        await redis.set(
+            ':count:{}:tag_name:{}:page_idx:{}:page_size{}'
+            .format(
+                resource_query.category_name,
+                resource_query.tag_name,
+                resource_query.page_idx,
+                resource_query.page_size
+            ),
+            count
+        )
+    return count
 
 
 @folder_router.get(
@@ -64,12 +97,44 @@ async def get_folder(
     if len(url) > 0 and url[0] != '/':
         url = f'/{url}'
 
-    folders = await ResourceService.find_resources(Folder(url=url))
+    folder_str = await redis.get(f'folder:url:{url}')
+    if folder_str is not None:
+        folders = [pickle.loads(folder_str)]
+    else:
+        folders = await ResourceService.find_resources(Folder(url=url))
+        await redis.set(f'folder:url:{url}', pickle.dumps(folders[0]))
+
     assert len(folders) == 1
     ResourceService.check_permission(folders[0], cur_user, 1)
-    sub_resources = await ResourceService.find_sub_resources(
-        url, resource_query, Content
+
+    preview_str = await redis.get(
+        'preview:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
+        .format(
+            resource_query.category_name,
+            resource_query.tag_name,
+            resource_query.page_idx,
+            resource_query.page_size
+        )
     )
+    need_refresh = await redis.get('preview_need_refresh')
+    if preview_str is not None and need_refresh is None:
+        sub_resources = pickle.loads(preview_str)
+    else:
+        sub_resources = await ResourceService.find_sub_resources(
+            url, resource_query, Content
+        )
+        await redis.delete('preview_need_refresh')
+        await redis.set(
+            'preview:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
+            .format(
+                resource_query.category_name,
+                resource_query.tag_name,
+                resource_query.page_idx,
+                resource_query.page_size
+            ),
+            pickle.dumps(sub_resources)
+        )
+
     return [ResourcePreview.init(x) for x in sub_resources]
 
 
