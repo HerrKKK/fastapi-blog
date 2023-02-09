@@ -65,14 +65,13 @@ async def get_sub_count(
             resource_query.page_size
         )
     )
-    need_refresh = await redis.get('count_need_refresh')
+    need_refresh = await redis.get(f'need_refresh:url:{url}')
     if count is None or need_refresh is not None:
         count = await ResourceService.find_sub_count(
             folders[0].url,
             resource_query,
             Content
         )
-        await redis.delete('count_need_refresh')
         await redis.set(
             'count:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
             .format(
@@ -119,14 +118,14 @@ async def get_folder(
             resource_query.page_size
         )
     )
-    need_refresh = await redis.get('preview_need_refresh')
+    need_refresh = await redis.get(f'need_refresh:url:{url}')
     if preview_str is not None and need_refresh is None:
         sub_resources = pickle.loads(preview_str)
     else:
         sub_resources = await ResourceService.find_sub_resources(
             url, resource_query, Content
         )
-        await redis.delete('preview_need_refresh')
+        await redis.delete(f'need_refresh:url:{url}')
         await redis.set(
             'preview:url:{}:category_name:{}:tag_name:{}:page_idx:{}:page_size{}'
             .format(

@@ -29,11 +29,9 @@ async def add_content(
     content.parent_url = '/draft'
 
     content = await ResourceService.add_resource(content)
-    await redis.set(f'content:id:{content.id}', pickle.dumps(content))
-    await redis.delete(f'folder:url:{content.parent_url}')
 
-    await redis.set('count_need_refresh', 'True')
-    await redis.set('preview_need_refresh', 'True')
+    await redis.set(f'content:id:{content.id}', pickle.dumps(content))
+    await redis.set(f'need_refresh:url:{content_input.parent_url}', 'True')
 
     content_folder = Path(f'static/content/{content.id}')
     if not await Path.exists(content_folder):
@@ -63,15 +61,17 @@ async def get_content(
     dependencies=[Depends(RoleRequired('admin'))]
 )
 async def modify_content(
-    content: ContentInput,
+    content_input: ContentInput,
     redis: Redis = Depends(AsyncRedis.get_connection)
 ):
-    await ResourceService.trim_files(content.id, content.files)
-    await ResourceService.reset_content_tags(Content(**content.dict()))
-    content = await ResourceService.modify_resource(Content(**content.dict()))
+    await ResourceService.trim_files(content_input.id, content_input.files)
+    await ResourceService.reset_content_tags(Content(**content_input.dict()))
+    content = await ResourceService.modify_resource(
+        Content(**content_input.dict())
+    )
     await redis.set(f'content:id:{content.id}', pickle.dumps(content))
-    await redis.set('count_need_refresh', 'True')
-    await redis.set('preview_need_refresh', 'True')
+    await redis.set(f'need_refresh:url:{content_input.parent_url}', 'True')
+    await redis.set(f'need_refresh:url:{content.parent_url}', 'True')
     return ContentOutput.init(content)
 
 
@@ -83,8 +83,15 @@ async def delete_content(
     content_id: int,
     redis: Redis = Depends(AsyncRedis.get_connection)
 ):
+    content_str = await redis.get(f'content:id:{content_id}')
+    if content_str is None:
+        content = (await ResourceService.find_resources(
+            Content(id=content_id)
+        ))[0]
+    else:
+        content = pickle.dumps(content_str)
+
     await ResourceService.trim_files(content_id, set())
     await redis.delete(f'content:id:{content_id}')
-    await redis.set('count_need_refresh', 'True')
-    await redis.set('preview_need_refresh', 'True')
+    await redis.set(f'need_refresh:url:{content.parent_url}', 'True')
     return await ResourceService.remove_resource(Resource(id=content_id))
